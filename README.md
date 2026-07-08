@@ -34,6 +34,32 @@ The release binaries are built with PyInstaller, so Python is not required.
 8. Click **Send to 3DS**.
 9. Click **Quit** when finished.
 
+## macOS First Run
+
+The macOS release binaries are not Apple-notarized yet. On first run, macOS may
+show:
+
+> Apple could not verify "3ds-ftpd-transfer" is free of malware that may harm
+> your Mac or compromise your privacy.
+
+To open it anyway:
+
+1. Right-click or Control-click `3ds-ftpd-transfer`.
+2. Choose **Open**.
+3. Click **Open** again in the warning dialog.
+
+If macOS still blocks it, remove the download quarantine flag after extracting
+the archive:
+
+```bash
+xattr -dr com.apple.quarantine ./3ds-ftpd-transfer
+chmod +x ./3ds-ftpd-transfer
+./3ds-ftpd-transfer
+```
+
+The long-term fix is to sign and notarize the macOS builds with an Apple
+Developer ID certificate.
+
 ## Development
 
 ```bash
