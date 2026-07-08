@@ -9,6 +9,15 @@ file or a direct legal/homebrew download URL to a folder on the 3DS SD card.
 This tool does not include ROM search, archive scraping, or copyrighted-content
 download integration.
 
+## Documentation
+
+The full setup and usage guide is published here:
+
+https://shadohead.github.io/3ds-ftpd-transfer/
+
+It covers installing the app, sending files, NDS cheat databases, NDS forwarder
+setup, SD card preparation notes, and what a hosted website can and cannot do.
+
 ## Easy Install
 
 This installs only the `3ds-ftpd-transfer` executable into a user-owned folder.
