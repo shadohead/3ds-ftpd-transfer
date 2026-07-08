@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "3ds-ftpd-transfer"
+version = "0.1.0"
+description = "A browser-based file sender for Nintendo 3DS ftpd."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+license = { text = "MIT" }
+authors = [{ name = "3DS ftpd Transfer contributors" }]
+keywords = ["3ds", "ftpd", "ftp", "homebrew", "file-transfer"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Web Environment",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Communications :: File Sharing",
+]
+
+[project.scripts]
+3ds-ftpd-transfer = "ftpd_transfer.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

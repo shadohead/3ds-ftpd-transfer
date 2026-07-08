@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, for example v0.1.0"
+        required: true
+        default: "v0.1.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            artifact: 3ds-ftpd-transfer-macos-arm64
+            binary: 3ds-ftpd-transfer
+          - os: macos-13
+            artifact: 3ds-ftpd-transfer-macos-x64
+            binary: 3ds-ftpd-transfer
+          - os: ubuntu-latest
+            artifact: 3ds-ftpd-transfer-linux-x64
+            binary: 3ds-ftpd-transfer
+          - os: windows-latest
+            artifact: 3ds-ftpd-transfer-windows-x64.exe
+            binary: 3ds-ftpd-transfer.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e . -r requirements-dev.txt
+      - run: python -m pytest
+      - run: pyinstaller --clean --onefile --name 3ds-ftpd-transfer src/ftpd_transfer/__main__.py
+      - name: Package Unix binary
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x "dist/${{ matrix.binary }}"
+          tar -czf "${{ matrix.artifact }}.tar.gz" -C dist "${{ matrix.binary }}"
+      - name: Package Windows binary
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path "dist/${{ matrix.binary }}" -DestinationPath "${{ matrix.artifact }}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            *.tar.gz
+            *.zip
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: 3DS ftpd Transfer ${{ inputs.tag }}
+          body: |
+            First public release.
+
+            Download the file for your operating system, extract it, run the executable, and open ftpd on your 3DS.
+
+            This tool is for legal homebrew files, saves, patches, themes, and backups you are allowed to copy. It does not include ROM search, archive scraping, or copyrighted-content download integration.
+          files: release-artifacts/*

@@ -1,0 +1,59 @@
+# 3DS ftpd Transfer
+
+A small browser-based helper for sending files to a Nintendo 3DS running
+[`ftpd`](https://github.com/mtheall/ftpd).
+
+It starts a local web UI, opens it in your browser, and transfers either a local
+file or a direct legal/homebrew download URL to a folder on the 3DS SD card.
+
+This tool does not include ROM search, archive scraping, or copyrighted-content
+download integration.
+
+## Download
+
+Use the latest GitHub Release for your operating system:
+
+- macOS: `3ds-ftpd-transfer-macos-*`
+- Windows: `3ds-ftpd-transfer-windows.exe`
+- Linux: `3ds-ftpd-transfer-linux-*`
+
+The release binaries are built with PyInstaller, so Python is not required.
+
+## Quick Start
+
+1. Install/open `ftpd` on your 3DS.
+2. Note the IP address and port shown on the 3DS screen.
+3. Run `3ds-ftpd-transfer`.
+4. Your browser opens the transfer page.
+5. Enter the 3DS IP address and port.
+6. Choose a destination folder, such as:
+   - `/3ds/inbox`
+   - `/roms/nds`
+   - `/cias`
+7. Choose a local file or paste a direct legal/homebrew URL.
+8. Click **Send to 3DS**.
+9. Click **Quit** when finished.
+
+## Development
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e . -r requirements-dev.txt
+python -m pytest
+python -m ftpd_transfer
+```
+
+## Build a Local Binary
+
+```bash
+python -m pip install -r requirements-dev.txt
+pyinstaller --clean --onefile --name 3ds-ftpd-transfer src/ftpd_transfer/__main__.py
+```
+
+The binary will be in `dist/`.
+
+## Legal Use
+
+Use this for homebrew, patches, saves, themes, and backups you are legally
+allowed to copy. It is not a downloader for copyrighted commercial ROMs.
