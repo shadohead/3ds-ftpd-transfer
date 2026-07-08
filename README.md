@@ -63,6 +63,26 @@ The release binaries are built with PyInstaller, so Python is not required.
 8. Click **Send to 3DS**.
 9. Click **Quit** when finished.
 
+## NDS Cheat Database Helper
+
+The app can install a TWiLight Menu++ cheat database directly to:
+
+```text
+/_nds/TWiLightMenu/extras/usrcheat.dat
+```
+
+Open `ftpd` on the 3DS, enter the same IP and port, then use the
+**NDS cheats for TWiLight Menu++** panel. You can choose a local
+`usrcheat.dat`, `.zip`, or `.7z` file, or paste a direct download URL to one of
+those files.
+
+The source page for DeadSkullzJr's database is:
+
+https://www.gamebrew.org/wiki/DeadSkullzJr_NDS_Cheat_Databases
+
+GameBrew lists TWiLight Menu++ as using `usrcheat.dat` at
+`SD:/_nds/TWiLightMenu/extras/usrcheat.dat`.
+
 ## macOS First Run
 
 The macOS release binaries are not Apple-notarized yet. On first run, macOS may

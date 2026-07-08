@@ -69,9 +69,11 @@ jobs:
           tag_name: ${{ inputs.tag }}
           name: 3DS ftpd Transfer ${{ inputs.tag }}
           body: |
-            First public release.
+            Release build for 3DS ftpd Transfer.
 
             Download the file for your operating system, extract it, run the executable, and open ftpd on your 3DS.
+
+            Includes a TWiLight Menu++ NDS cheat database helper. It accepts `usrcheat.dat`, or a zip/7z archive containing `usrcheat.dat`, and uploads it to `/_nds/TWiLightMenu/extras/usrcheat.dat`.
 
             This tool is for legal homebrew files, saves, patches, themes, and backups you are allowed to copy. It does not include ROM search, archive scraping, or copyrighted-content download integration.
           files: release-artifacts/*

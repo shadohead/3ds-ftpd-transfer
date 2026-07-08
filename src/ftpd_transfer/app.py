@@ -14,11 +14,16 @@ import time
 import urllib.parse
 import urllib.request
 import webbrowser
+import zipfile
 from pathlib import Path
 from typing import Any
 
+import py7zr
+
 HOST = "127.0.0.1"
 DEFAULT_REMOTE_FOLDER = "/3ds/inbox"
+TWILIGHT_CHEAT_REMOTE_FOLDER = "/_nds/TWiLightMenu/extras"
+CHEAT_DATABASE_NAME = "usrcheat.dat"
 CHUNK_SIZE = 64 * 1024
 
 STATUS: dict[str, Any] = {
@@ -139,6 +144,42 @@ def upload_file(host: str, port: int, remote_folder: str, file_path: str) -> Non
     set_status(f"Sent {source.name} to {remote_folder}/", progress=100, ok=True)
 
 
+def prepare_usrcheat_database(source_path: str) -> tuple[str, str | None]:
+    source = Path(source_path)
+    suffix = source.suffix.lower()
+
+    if suffix == ".dat":
+        temp_dir = tempfile.mkdtemp(prefix="3ds-ftpd-cheats-")
+        target = Path(temp_dir) / CHEAT_DATABASE_NAME
+        shutil.copyfile(source, target)
+        return str(target), temp_dir
+
+    temp_dir = tempfile.mkdtemp(prefix="3ds-ftpd-cheats-")
+    if suffix == ".zip":
+        with zipfile.ZipFile(source) as archive:
+            match = next((name for name in archive.namelist() if Path(name).name.lower() == CHEAT_DATABASE_NAME), None)
+            if not match:
+                raise RuntimeError(f"{CHEAT_DATABASE_NAME} was not found in the zip archive")
+            archive.extract(match, temp_dir)
+            extracted = Path(temp_dir) / match
+    elif suffix == ".7z":
+        with py7zr.SevenZipFile(source) as archive:
+            names = archive.getnames()
+            match = next((name for name in names if Path(name).name.lower() == CHEAT_DATABASE_NAME), None)
+            if not match:
+                raise RuntimeError(f"{CHEAT_DATABASE_NAME} was not found in the 7z archive")
+            archive.extract(path=temp_dir, targets=[match])
+            extracted = Path(temp_dir) / match
+    else:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        raise RuntimeError("Cheat source must be usrcheat.dat, a zip containing usrcheat.dat, or a 7z containing usrcheat.dat")
+
+    target = Path(temp_dir) / CHEAT_DATABASE_NAME
+    if extracted != target:
+        shutil.move(str(extracted), target)
+    return str(target), temp_dir
+
+
 def run_transfer(host: str, port: int, remote_folder: str, upload_path: str, url: str) -> None:
     cleanup_dir: str | None = None
     try:
@@ -159,6 +200,31 @@ def run_transfer(host: str, port: int, remote_folder: str, upload_path: str, url
             shutil.rmtree(str(Path(upload_path).parent), ignore_errors=True)
 
 
+def run_cheat_transfer(host: str, port: int, upload_path: str, url: str) -> None:
+    source_cleanup_dir: str | None = None
+    prepared_cleanup_dir: str | None = None
+    try:
+        set_status("Starting NDS cheat database install.", progress=0, running=True, ok=False)
+        source = upload_path
+        if not source:
+            source = download_url(url)
+            source_cleanup_dir = str(Path(source).parent)
+
+        prepared, prepared_cleanup_dir = prepare_usrcheat_database(source)
+        set_status(f"Uploading {CHEAT_DATABASE_NAME} for TWiLight Menu++...", progress=45)
+        upload_file(host, port, TWILIGHT_CHEAT_REMOTE_FOLDER, prepared)
+        set_status("NDS cheat database installed for TWiLight Menu++.", progress=100, running=False, ok=True)
+    except Exception as exc:
+        set_status(f"Error: {exc}", running=False, ok=False)
+    finally:
+        if prepared_cleanup_dir:
+            shutil.rmtree(prepared_cleanup_dir, ignore_errors=True)
+        if source_cleanup_dir:
+            shutil.rmtree(source_cleanup_dir, ignore_errors=True)
+        elif upload_path:
+            shutil.rmtree(str(Path(upload_path).parent), ignore_errors=True)
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args: object) -> None:
         return
@@ -175,7 +241,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_html(INDEX_HTML)
 
     def do_POST(self) -> None:
-        if self.path != "/transfer":
+        if self.path not in {"/transfer", "/cheats"}:
             self.send_error(404)
             return
 
@@ -215,7 +281,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not upload_path and not url:
                 raise ValueError("Choose a local file or paste a direct legal/homebrew URL.")
 
-            thread = threading.Thread(target=run_transfer, args=(host, port, remote_folder, upload_path, url), daemon=True)
+            if self.path == "/cheats":
+                thread = threading.Thread(target=run_cheat_transfer, args=(host, port, upload_path, url), daemon=True)
+            else:
+                thread = threading.Thread(target=run_transfer, args=(host, port, remote_folder, upload_path, url), daemon=True)
             thread.start()
             self.send_json({"ok": True})
         except Exception as exc:
@@ -250,7 +319,7 @@ INDEX_HTML = r"""<!doctype html>
     main { max-width: 780px; margin: 0 auto; padding: 28px 18px 48px; }
     h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: 0; }
     p { color: #555; line-height: 1.45; }
-    form, section { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 18px; margin-top: 16px; }
+    form, section, .panel { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 18px; margin-top: 16px; }
     label { display: block; font-weight: 650; margin: 14px 0 6px; }
     input { box-sizing: border-box; width: 100%; padding: 10px 11px; border: 1px solid #bbb; border-radius: 6px; font: inherit; }
     .row { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 12px; }
@@ -264,6 +333,7 @@ INDEX_HTML = r"""<!doctype html>
     @media (prefers-color-scheme: dark) {
       body { background: #141414; color: #f1f1f1; }
       form, section { background: #202020; border-color: #3a3a3a; }
+      .panel { background: #202020; border-color: #3a3a3a; }
       p, .note { color: #c7c7c7; }
       input { background: #151515; border-color: #555; color: #f1f1f1; }
     }
@@ -302,6 +372,21 @@ INDEX_HTML = r"""<!doctype html>
       </div>
     </form>
 
+    <div class="panel">
+      <h2>NDS cheats for TWiLight Menu++</h2>
+      <p>Install DeadSkullzJr-style <code>usrcheat.dat</code> databases to <code>/_nds/TWiLightMenu/extras/usrcheat.dat</code>.</p>
+      <form id="cheatForm">
+        <label for="cheat_file">Cheat database file or archive</label>
+        <input id="cheat_file" name="file" type="file" accept=".dat,.zip,.7z">
+
+        <label for="cheat_url">Direct cheat database URL</label>
+        <input id="cheat_url" name="url" placeholder="https://example.com/usrcheat.dat or usrcheat.7z">
+        <p class="note">Supported sources: <code>usrcheat.dat</code>, a zip containing <code>usrcheat.dat</code>, or a 7z containing <code>usrcheat.dat</code>. Source info: <a href="https://www.gamebrew.org/wiki/DeadSkullzJr_NDS_Cheat_Databases" target="_blank" rel="noreferrer">DeadSkullzJr NDS Cheat Databases</a>.</p>
+
+        <button id="cheatButton" type="submit">Install Cheats for TWiLight Menu++</button>
+      </form>
+    </div>
+
     <section>
       <progress id="progress" value="0" max="100"></progress>
       <p id="message">Ready.</p>
@@ -311,7 +396,9 @@ INDEX_HTML = r"""<!doctype html>
 
   <script>
     const form = document.getElementById('transferForm');
+    const cheatForm = document.getElementById('cheatForm');
     const button = document.getElementById('sendButton');
+    const cheatButton = document.getElementById('cheatButton');
     const progress = document.getElementById('progress');
     const message = document.getElementById('message');
     const log = document.getElementById('log');
@@ -327,6 +414,20 @@ INDEX_HTML = r"""<!doctype html>
       }
     });
 
+    cheatForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      cheatButton.disabled = true;
+      const data = new FormData(cheatForm);
+      data.append('host', document.getElementById('host').value);
+      data.append('port', document.getElementById('port').value);
+      const response = await fetch('/cheats', { method: 'POST', body: data });
+      const payload = await response.json();
+      if (!payload.ok) {
+        cheatButton.disabled = false;
+        alert(payload.error || 'Cheat install failed to start.');
+      }
+    });
+
     async function poll() {
       try {
         const response = await fetch('/status');
@@ -335,6 +436,7 @@ INDEX_HTML = r"""<!doctype html>
         message.textContent = status.message || '';
         log.textContent = (status.log || []).join('\n');
         button.disabled = !!status.running;
+        cheatButton.disabled = !!status.running;
       } catch (error) {
         message.textContent = 'Could not reach local transfer helper.';
       }
