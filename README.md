@@ -9,12 +9,41 @@ file or a direct legal/homebrew download URL to a folder on the 3DS SD card.
 This tool does not include ROM search, archive scraping, or copyrighted-content
 download integration.
 
-## Download
+## Easy Install
+
+This installs only the `3ds-ftpd-transfer` executable into a user-owned folder.
+No Python, Homebrew, admin password, or system package manager is required.
+
+macOS / Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/shadohead/3ds-ftpd-transfer/main/scripts/install.sh | sh
+```
+
+Uninstall:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/shadohead/3ds-ftpd-transfer/main/scripts/uninstall.sh | sh
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/shadohead/3ds-ftpd-transfer/main/scripts/install.ps1 | iex
+```
+
+Uninstall:
+
+```powershell
+irm https://raw.githubusercontent.com/shadohead/3ds-ftpd-transfer/main/scripts/uninstall.ps1 | iex
+```
+
+## Direct Download
 
 Use the latest GitHub Release for your operating system:
 
 - macOS: `3ds-ftpd-transfer-macos-*`
-- Windows: `3ds-ftpd-transfer-windows.exe`
+- Windows: `3ds-ftpd-transfer-windows-x64.exe.zip`
 - Linux: `3ds-ftpd-transfer-linux-*`
 
 The release binaries are built with PyInstaller, so Python is not required.
